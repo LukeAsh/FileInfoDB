@@ -1,5 +1,6 @@
 """
-Traverse given directory and get list of all available files (full path)
+Traverse given directory, get list of all available files (full path)
+the calculate secure hashes and write it along with file size to csv file
 
 Currently checking WD Elements
     '''
@@ -13,6 +14,14 @@ import hashlib
 import logging as log
 import os
 
+DIRECTORIES_LIST = [
+    '/media/backup',
+    '/media/daito_backup',
+    '/media/to_review',
+    '/media/media',
+    '/media/daitoryu',
+    '/media/to_review2'
+]
 CSV_DATABASE = 'file_hashes.csv'
 HASHES = ('md5', 'sha512')
 
@@ -41,16 +50,31 @@ def generate_hashes_from_file(filepath):
         log.exception(e)
     return hashes
 
+
 def save_to_csv(data, filename=CSV_DATABASE):
     """
     Write FileInfo data to csv file
     :return:
     """
     log.info('data: {0}'.format(data))
-    with open(filename, 'w', newline='') as f:
+    with open(filename, 'a', newline='') as f:
         writer = csv.writer(f)
         for file_info in data:
             writer.writerow(file_info.get_attributes())
+
+
+def process_directories(directories_list=DIRECTORIES_LIST):
+    file_info_list = []
+    for directory in directories_list:
+        f_paths = get_all_files_from_dir(directory)
+        for f_path in f_paths:
+            hashes = generate_hashes_from_file(f_path)
+            """log.debug('f: {filepath} hashes: {hashes}'.format(
+                filepath=f_path,
+                hashes=generate_hashes_from_file(f_path))
+            )"""
+            file_info_list.append(FileInfo(f_path, hashes=hashes))
+    save_to_csv(data=file_info_list)
 
 
 class FileInfo(object):
@@ -80,16 +104,7 @@ class FileInfo(object):
 
 
 def main():
-    file_info_list = []
-    f_paths = get_all_files_from_dir(r'/tmp')
-    for f_path in f_paths:
-        hashes = generate_hashes_from_file(f_path)
-        log.info('f: {filepath} hashes: {hashes}'.format(
-            filepath=f_path,
-            hashes=generate_hashes_from_file(f_path))
-        )
-        file_info_list.append(FileInfo(f_path, hashes=hashes))
-    save_to_csv(data=file_info_list)
+    process_directories()
 
 if __name__ == '__main__':
     main()
