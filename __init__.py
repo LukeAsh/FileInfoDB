@@ -25,7 +25,7 @@ DIRECTORIES_LIST = [
 ]
 CSV_DATABASE = 'file_hashes.csv'
 HASHES = ('md5', 'sha512')
-BLOCK_SIZE = 8192   # read BLOCK_SIZE bytes at a time
+BLOCK_SIZE = 102400   # read BLOCK_SIZE bytes at a time
 
 # configure logger
 log.basicConfig(filename='filesystem.log', level=log.DEBUG)
@@ -50,7 +50,7 @@ def generate_hashes_from_file(filepath):
     try:
         h = {h_name: getattr(hashlib, h_name)() for h_name in hashes.keys()}
         with open(filepath, 'rb') as f:
-            for buffer in iter(functools.partial(f.read, BLOCK_SIZE), ''):
+            for buffer in iter(functools.partial(f.read, BLOCK_SIZE), b''):
                 for _hash in h:
                     h[_hash].update(buffer)
         for h_name in hashes.keys():
@@ -66,7 +66,7 @@ def save_to_csv(data, filename=CSV_DATABASE):
     Write FileInfo data to csv file
     :return:
     """
-    log.info('data: {0}'.format(data))
+    # log.info('data: {0}'.format(data))
     with open(filename, 'a', newline='') as f:
         writer = csv.writer(f)
         for file_info in data:
@@ -97,6 +97,10 @@ class FileInfo(object):
         self.mtime = os.path.getmtime(self.path)
         self.atime = os.path.getatime(self.path)
         self.hashes = hashes
+
+    def __repr__(self):
+        attributes = self.get_attributes()
+        return ' '.join(map(str, attributes))
 
     def get_attributes(self):
         """
