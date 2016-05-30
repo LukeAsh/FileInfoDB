@@ -10,6 +10,7 @@ Currently checking WD Elements
     '''
 """
 import csv
+import functools
 import hashlib
 import logging as log
 import os
@@ -24,6 +25,10 @@ DIRECTORIES_LIST = [
 ]
 CSV_DATABASE = 'file_hashes.csv'
 HASHES = ('md5', 'sha512')
+BLOCK_SIZE = 8192   # read BLOCK_SIZE bytes at a time
+
+# configure logger
+log.basicConfig(filename='filesystem.log', level=log.DEBUG)
 
 
 def get_all_files_from_dir(directory):
@@ -40,13 +45,18 @@ def get_all_files_from_dir(directory):
 
 
 def generate_hashes_from_file(filepath):
+    log.info('Generating hash for file {fpath}'.format(fpath=filepath))
     hashes = {h: None for h in HASHES}
     try:
+        h = {h_name: getattr(hashlib, h_name)() for h_name in hashes.keys()}
         with open(filepath, 'rb') as f:
-            file_content = f.read()
-            for h_name in hashes.keys():
-                hashes[h_name] = getattr(hashlib, h_name)(file_content).hexdigest()
+            for buffer in iter(functools.partial(f.read, BLOCK_SIZE), ''):
+                for _hash in h:
+                    h[_hash].update(buffer)
+        for h_name in hashes.keys():
+            hashes[h_name] = h[h_name].hexdigest()
     except PermissionError as e:
+        log.warning('Couldn\'t access file {fpath}'.format(fpath=filepath))
         log.exception(e)
     return hashes
 
@@ -66,6 +76,7 @@ def save_to_csv(data, filename=CSV_DATABASE):
 def process_directories(directories_list=DIRECTORIES_LIST):
     file_info_list = []
     for directory in directories_list:
+        log.info('Processing directory {dir}'.format(dir=directory))
         f_paths = get_all_files_from_dir(directory)
         for f_path in f_paths:
             hashes = generate_hashes_from_file(f_path)
