@@ -2,6 +2,8 @@
 Traverse given directory, get list of all available files (full path)
 the calculate secure hashes and write it along with file size to csv file
 
+os.walk returns byte strings instead of unicode strings
+
 Currently checking WD Elements
     '''
     lvscan
@@ -16,16 +18,12 @@ import logging as log
 import os
 
 DIRECTORIES_LIST = [
-    '/media/backup',
-    '/media/daito_backup',
-    '/media/to_review',
-    '/media/media',
-    '/media/daitoryu',
-    '/media/to_review2'
+    b'/media/MasterCollection'
 ]
 CSV_DATABASE = 'file_hashes.csv'
 HASHES = ('md5', 'sha512')
 BLOCK_SIZE = 102400   # read BLOCK_SIZE bytes at a time
+SAVE_EVERY_X_RESULTS = 128     # save file hashes after getting 1024 results
 
 # configure logger
 log.basicConfig(filename='filesystem.log', level=log.DEBUG)
@@ -66,7 +64,7 @@ def save_to_csv(data, filename=CSV_DATABASE):
     Write FileInfo data to csv file
     :return:
     """
-    # log.info('data: {0}'.format(data))
+    log.debug('Saving results to csv file')
     with open(filename, 'a', newline='') as f:
         writer = csv.writer(f)
         for file_info in data:
@@ -75,6 +73,7 @@ def save_to_csv(data, filename=CSV_DATABASE):
 
 def process_directories(directories_list=DIRECTORIES_LIST):
     file_info_list = []
+    index = 0
     for directory in directories_list:
         log.info('Processing directory {dir}'.format(dir=directory))
         f_paths = get_all_files_from_dir(directory)
@@ -85,7 +84,18 @@ def process_directories(directories_list=DIRECTORIES_LIST):
                 hashes=generate_hashes_from_file(f_path))
             )"""
             file_info_list.append(FileInfo(f_path, hashes=hashes))
+            index += 1
+            file_info_list = save_intermediate_results(file_info_list, index)
     save_to_csv(data=file_info_list)
+
+
+def save_intermediate_results(file_info_list, index):
+    # save every SAVE_EVERY_X_RESULTS files
+    if index%SAVE_EVERY_X_RESULTS == 0 and index != 0:
+        save_to_csv(data=file_info_list)
+        return []
+    else:
+        return file_info_list
 
 
 class FileInfo(object):
