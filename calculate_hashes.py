@@ -2,14 +2,10 @@
 Traverse given directory, get list of all available files (full path)
 the calculate secure hashes and write it along with file size to csv file
 
-os.walk returns byte strings instead of unicode strings
+os.walk returns byte strings instead of unicode strings if you pass byte string as argument
 
-Currently checking WD Elements
-    '''
-    lvscan
-    lvchange -ay /dev/wde
-    for i in `ls -x1 /dev/wde`;do udisks --mount /dev/wde/$i; don
-    '''
+What you end up is settings.CSV_DATABASE file with:
+full_path, file_name, size, ctime, mtime, atime, [hash for hash in settings.HASHES]
 """
 import csv
 import functools
@@ -17,11 +13,12 @@ import hashlib
 import logging as log
 import os
 
+from handle_csv import save_to_csv
+import settings
+
 DIRECTORIES_LIST = [
     b'/media/MasterCollection'
 ]
-CSV_DATABASE = 'file_hashes.csv'
-HASHES = ('md5', 'sha512')
 BLOCK_SIZE = 102400   # read BLOCK_SIZE bytes at a time
 SAVE_EVERY_X_RESULTS = 128     # save file hashes after getting 1024 results
 
@@ -44,7 +41,7 @@ def get_all_files_from_dir(directory):
 
 def generate_hashes_from_file(filepath):
     log.info('Generating hash for file {fpath}'.format(fpath=filepath))
-    hashes = {h: None for h in HASHES}
+    hashes = {h: None for h in settings.HASHES}
     try:
         h = {h_name: getattr(hashlib, h_name)() for h_name in hashes.keys()}
         with open(filepath, 'rb') as f:
@@ -57,18 +54,6 @@ def generate_hashes_from_file(filepath):
         log.warning('Couldn\'t access file {fpath}'.format(fpath=filepath))
         log.exception(e)
     return hashes
-
-
-def save_to_csv(data, filename=CSV_DATABASE):
-    """
-    Write FileInfo data to csv file
-    :return:
-    """
-    log.debug('Saving results to csv file')
-    with open(filename, 'a', newline='') as f:
-        writer = csv.writer(f)
-        for file_info in data:
-            writer.writerow(file_info.get_attributes())
 
 
 def process_directories(directories_list=DIRECTORIES_LIST):
