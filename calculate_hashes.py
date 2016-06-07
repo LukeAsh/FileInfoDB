@@ -5,7 +5,7 @@ the calculate secure hashes and write it along with file size to csv file
 os.walk returns byte strings instead of unicode strings if you pass byte string as argument
 
 What you end up is settings.CSV_DATABASE file with:
-full_path, file_name, size, ctime, mtime, atime, [hash for hash in settings.HASHES]
+dir_name, file_name, size, ctime, mtime, atime, [hash for hash in settings.HASHES]
 """
 import functools
 import hashlib
@@ -61,7 +61,7 @@ def process_directories(directories_list):
                 filepath=f_path,
                 hashes=generate_hashes_from_file(f_path))
             )"""
-            file_info_list.append(FileInfo(f_path, hashes=hashes))
+            file_info_list.append(FileInfo(full_path=f_path, hashes=hashes))
             index += 1
             file_info_list = save_intermediate_results(file_info_list, index)
     save_to_csv(data=file_info_list)
@@ -77,16 +77,27 @@ def save_intermediate_results(file_info_list, index):
 
 
 class FileInfo(object):
-    def __init__(self, path, hashes=None):
+    def __init__(self, full_path=None, hashes=None, file_info_data=None):
         # path is byte string so encoding is needed
-        self.full_path = path
-        self.path = os.path.dirname(path)   # byte string
-        self.name = os.path.basename(path)  # byte string
-        self.size = os.path.getsize(path)
-        self.ctime = os.path.getctime(path)
-        self.mtime = os.path.getmtime(path)
-        self.atime = os.path.getatime(path)
-        self.hashes = hashes
+        if file_info_data is None:
+            self.full_path = full_path
+            self.dirname = os.path.dirname(full_path)   # byte string
+            self.name = os.path.basename(full_path)  # byte string
+            self.size = os.path.getsize(full_path)
+            self.ctime = os.path.getctime(full_path)
+            self.mtime = os.path.getmtime(full_path)
+            self.atime = os.path.getatime(full_path)
+            self.hashes = hashes    # {'sha512': '9d6f3a6e9e7faacaceecaaa1417461c9fe5cd6268b9055d30518542b04272a437865\
+            # af2dc709215957592d896237b1837a9639ec806582a92c941b9c7015d971', 'md5': 'b5a8ecb1e6292a676c2a27ce8f3f0ad0'}
+        else:
+            self.dirname = file_info_data[0]
+            self.name = file_info_data[1]
+            self.size = file_info_data[2]
+            self.ctime = file_info_data[3]
+            self.mtime = file_info_data[4]
+            self.atime = file_info_data[5]
+            self.hashes = file_info_data[6:]    # list of hashes in same order as in settings.HASHES
+            self.hashes = {settings.HASHES[index]: element for index, element in enumerate(self.hashes)}
 
     def __repr__(self):
         attributes = self.get_attributes()
@@ -97,14 +108,14 @@ class FileInfo(object):
         :return: output for csv writer
         """
         out = [
-            self.path,
+            self.dirname,
             self.name,
             self.size,
             self.ctime,
             self.mtime,
             self.atime,
         ]
-        hashes = [self.hashes[h] for h in self.hashes]
+        hashes = [self.hashes[h] for h in settings.HASHES]
         return out + hashes
 
 
