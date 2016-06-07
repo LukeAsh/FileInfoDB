@@ -7,7 +7,6 @@ os.walk returns byte strings instead of unicode strings if you pass byte string 
 What you end up is settings.CSV_DATABASE file with:
 full_path, file_name, size, ctime, mtime, atime, [hash for hash in settings.HASHES]
 """
-import csv
 import functools
 import hashlib
 import logging as log
@@ -16,14 +15,8 @@ import os
 from handle_csv import save_to_csv
 import settings
 
-DIRECTORIES_LIST = [
-    b'/media/MasterCollection'
-]
-BLOCK_SIZE = 102400   # read BLOCK_SIZE bytes at a time
-SAVE_EVERY_X_RESULTS = 128     # save file hashes after getting 1024 results
-
 # configure logger
-log.basicConfig(filename='filesystem.log', level=log.DEBUG)
+log.basicConfig(filename=settings.LOG_FILE, level=log.DEBUG)
 
 
 def get_all_files_from_dir(directory):
@@ -45,7 +38,7 @@ def generate_hashes_from_file(filepath):
     try:
         h = {h_name: getattr(hashlib, h_name)() for h_name in hashes.keys()}
         with open(filepath, 'rb') as f:
-            for buffer in iter(functools.partial(f.read, BLOCK_SIZE), b''):
+            for buffer in iter(functools.partial(f.read, settings.BLOCK_SIZE), b''):
                 for _hash in h:
                     h[_hash].update(buffer)
         for h_name in hashes.keys():
@@ -56,7 +49,7 @@ def generate_hashes_from_file(filepath):
     return hashes
 
 
-def process_directories(directories_list=DIRECTORIES_LIST):
+def process_directories(directories_list):
     file_info_list = []
     index = 0
     for directory in directories_list:
@@ -75,8 +68,8 @@ def process_directories(directories_list=DIRECTORIES_LIST):
 
 
 def save_intermediate_results(file_info_list, index):
-    # save every SAVE_EVERY_X_RESULTS files
-    if index%SAVE_EVERY_X_RESULTS == 0 and index != 0:
+    # save every settings.SAVE_EVERY_X_RESULTS files
+    if index % settings.SAVE_EVERY_X_RESULTS == 0 and index != 0:
         save_to_csv(data=file_info_list)
         return []
     else:
@@ -85,12 +78,14 @@ def save_intermediate_results(file_info_list, index):
 
 class FileInfo(object):
     def __init__(self, path, hashes=None):
-        self.path = path
-        self.name = os.path.basename(path)
-        self.size = os.path.getsize(self.path)
-        self.ctime = os.path.getctime(self.path)
-        self.mtime = os.path.getmtime(self.path)
-        self.atime = os.path.getatime(self.path)
+        # path is byte string so encoding is needed
+        self.full_path = path
+        self.path = os.path.dirname(path)   # byte string
+        self.name = os.path.basename(path)  # byte string
+        self.size = os.path.getsize(path)
+        self.ctime = os.path.getctime(path)
+        self.mtime = os.path.getmtime(path)
+        self.atime = os.path.getatime(path)
         self.hashes = hashes
 
     def __repr__(self):
@@ -114,7 +109,7 @@ class FileInfo(object):
 
 
 def main():
-    process_directories()
+    process_directories(settings.DIRECTORIES_LIST)
 
 if __name__ == '__main__':
     main()
