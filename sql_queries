@@ -1,0 +1,29 @@
+# select rows with the same sha512 - shows all duplicated rows ordered by sha512
+select * from file_info where sha512 in (
+select sha512 from file_info group by file_info.sha512 having count(*)>1)
+order by sha512;
+
+
+--------------
+
+select rowid, *
+from file_info
+group by
+	file_info.md5,
+	file_info.sha512,
+	file_info.size;
+
+291653 Rows returned from: select rowid, *
+from file_info
+group by
+	file_info.md5,
+	file_info.sha512,
+	file_info.size; (took 15256ms)
+
+--- example ---
+00000b6ed1c81b2c20c31442ecd7883a
+
+
+
+select sha512 from file_info group by sha512 having count(*) >1 order by sha512;
+

@@ -81,16 +81,17 @@ class FileInfo(object):
         # path is byte string so encoding is needed
         if file_info_data is None:
             self.full_path = full_path
-            self.dirname = os.path.dirname(full_path)   # byte string
-            self.name = os.path.basename(full_path)  # byte string
-            self.size = os.path.getsize(full_path)
-            self.ctime = os.path.getctime(full_path)
-            self.mtime = os.path.getmtime(full_path)
-            self.atime = os.path.getatime(full_path)
+            self.dir_name = os.path.dirname(self.full_path)
+            self.name = os.path.basename(self.full_path)
+            self.size = os.path.getsize(self.full_path)
+            self.ctime = os.path.getctime(self.full_path)
+            self.mtime = os.path.getmtime(self.full_path)
+            self.atime = os.path.getatime(self.full_path)
             self.hashes = hashes    # {'sha512': '9d6f3a6e9e7faacaceecaaa1417461c9fe5cd6268b9055d30518542b04272a437865\
             # af2dc709215957592d896237b1837a9639ec806582a92c941b9c7015d971', 'md5': 'b5a8ecb1e6292a676c2a27ce8f3f0ad0'}
         else:
-            self.dirname = file_info_data[0]
+            self.full_path = file_info_data[0] + b'/' + file_info_data[1]
+            self.dir_name = file_info_data[0]
             self.name = file_info_data[1]
             self.size = file_info_data[2]
             self.ctime = file_info_data[3]
@@ -104,11 +105,12 @@ class FileInfo(object):
         return ' '.join(map(str, attributes))
 
     def get_attributes(self):
-        """
+        """Return output for csv writer
+        Output is compatible with row format from database using query 'select * from table;'
         :return: output for csv writer
         """
         out = [
-            self.dirname,
+            self.dir_name,
             self.name,
             self.size,
             self.ctime,
@@ -116,7 +118,7 @@ class FileInfo(object):
             self.atime,
         ]
         hashes = [self.hashes[h] for h in settings.HASHES]
-        return out + hashes
+        return tuple(out + hashes)
 
 
 def main():

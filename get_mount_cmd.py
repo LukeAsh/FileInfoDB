@@ -1,8 +1,10 @@
 """
 Create mount command for output from
 {{{
-cd /dev/mapper
-for i in `ls -x1`; do blkid $i; done
+sudo lvchange -ay wdmp
+sudo lvchange -ay wde
+# cd /dev/mapper
+for i in `ls /dev/mapper -x1`; do sudo blkid /dev/mapper/$i >> in.txt; done
 }}}
 """
 

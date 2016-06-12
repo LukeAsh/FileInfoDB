@@ -1,5 +1,9 @@
 Script used to traverse directory and (by default) subdirectories.
-Calculates md5, sha256, sha512 hash of file in binary mode.
+Calculates sha512 and md5 hash of file in binary mode.
 Produces output csv file with following information:
 
-filename,full_path,md5_sum,sha256_sum,sha512_sum
+dir_name, file_name, size, ctime, mtime, atime, sha512_sum, md5_sum
+
+## TODO
+* Handle errors when opening files
+* Progress bar
